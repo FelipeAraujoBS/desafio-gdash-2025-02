@@ -1,4 +1,4 @@
-# --- FASE 1: BUILD ---
+    # BUILD 
     FROM node:20-alpine AS builder
 
     WORKDIR /app
@@ -16,7 +16,7 @@
     RUN npm run build
     
     
-    # --- FASE 2: PRODUÇÃO/RUNTIME ---
+    # PRODUÇÃO 
     FROM node:20-alpine AS production
     
     # Define o diretório de trabalho
@@ -33,7 +33,7 @@
     # Isso garante que a imagem final seja muito menor
     COPY --from=builder /app/dist ./dist
     
-    # Expõe a porta que o NestJS estará ouvindo (ex: 3000)
+    # Expõe a porta que o NestJS estará ouvindo
     EXPOSE 3000
     
     # Comando para rodar a aplicação em produção
