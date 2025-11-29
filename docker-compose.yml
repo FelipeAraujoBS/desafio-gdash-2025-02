@@ -1,18 +1,14 @@
-version '3.8'
-
-1. Definindo a rede interna
-
+# 1. Definindo a rede interna
 networks:
-  internal_network:
+  gdash_network:
     driver: bridge
 
-2. Configurando os serviços
-2.1 Serviço MongoDB 
-
+# 2. Configurando os serviços
 services:
+  # 2.1 Serviço MongoDB
   mongodb:
     image: mongo:latest
-    container_name: mongodb_container 
+    container_name: mongodb_container
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: rootuser
@@ -24,7 +20,7 @@ services:
     networks:
       - gdash_network
 
-2.2 Fila de Mensagens (RabbitMQ)
+  # 2.2 Fila de Mensagens (RabbitMQ)
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq_container
@@ -40,16 +36,17 @@ services:
     networks:
       - gdash_network
 
-2.3 Serviço de API (Nest.JS)
+  # 2.3 Serviço de API (Nest.JS)
   api_service:
     build:
-      context: ./api_service
+      context: ./api
       dockerfile: Dockerfile
     container_name: api_gdash
     restart: unless-stopped
     environment:
-      MONGO_URI: mongodb://rootuser:rootpass@mongodb_container:27017
-      RABBITMQ_URI: amqp://rabbituser:rabbitpass@rabbitmq_container:5672
+      MONGO_URI: mongodb://rootuser:rootpass@mongodb:27017/gdash?authSource=admin
+      RABBITMQ_URI: amqp://rabbituser:rabbitpass@rabbitmq:5672
+      NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
@@ -58,12 +55,7 @@ services:
     networks:
       - gdash_network
 
-  2.4 Configuraçãod de Rede e Volumes
-  networks:
-    gdash_network:
-      driver: bridge
-
-  volumes:
-    mongo_data:
-
-
+# 3. Configuração de Volumes
+volumes:
+  mongo_data:
+  rabbitmq_data:
