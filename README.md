@@ -69,10 +69,10 @@ sequenceDiagram
 
 ## Python Collector
 
-- [ ] Integração Open-Meteo
-- [ ] Cron/scheduler
-- [ ] Producer RabbitMQ
-- [ ] Tratamento de erros
+- ✅ Integração Open-Meteo
+- ✅ Cron/scheduler
+- ✅ Producer RabbitMQ
+- ✅ Tratamento de erros
 
 ## Frontend (React)
 
