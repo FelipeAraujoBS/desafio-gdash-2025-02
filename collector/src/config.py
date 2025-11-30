@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     log_file: str = Field(default="logs/collector.log", env="LOG_FILE")
 
+    # Retry
+    max_retries = 3
+    retry_delay = 2 
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
