@@ -86,7 +86,8 @@ export class WeatherController {
   // Rota: POST /api/weather/:id/insight
   @Post(':id/insight')
   async generateInsight(@Param('id') id: string) {
-    const updatedWeather = await this.weatherService.generateAIInsight(id);
+    const updatedWeather =
+      await this.weatherService.generateInsightForWeather(id);
 
     if (!updatedWeather) {
       throw new NotFoundException(`Weather data with ID ${id} not found.`);

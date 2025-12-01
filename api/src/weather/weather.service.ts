@@ -5,11 +5,13 @@ import { Model } from 'mongoose';
 import { Weather, WeatherDocument } from './schemas/weather.schema';
 import { CreateWeatherDto } from './dto/create-weather.dto';
 import { QueryWeatherDto } from './dto/query-weather.dto';
+import { AiService } from 'src/ai/ia.service';
 
 @Injectable()
 export class WeatherService {
   constructor(
     @InjectModel(Weather.name) private weatherModel: Model<WeatherDocument>,
+    private readonly aiService: AiService,
   ) {}
 
   // 1. CRIAR NOVO REGISTRO (Recebe dados do Worker Go)
@@ -110,18 +112,37 @@ export class WeatherService {
   }
 
   // 5. GERAR INSIGHT COM IA (placeholder - você implementará depois)
-  async generateAIInsight(id: string): Promise<Weather | null> {
-    const weather = await this.weatherModel.findById(id).exec();
+  async generateInsightForWeather(weatherId: string): Promise<WeatherDocument> {
+    // 1. Busca os dados do MongoDB
+    const weather = await this.weatherModel.findById(weatherId).exec();
 
     if (!weather) {
-      return null;
+      throw new NotFoundException(
+        `Weather data with ID ${weatherId} not found.`,
+      );
     }
 
-    // TODO: Integrar com API de IA (Claude, GPT, etc.)
-    const insight = `Temperatura de ${weather.current.temperature}°C com umidade de ${weather.current.humidity}%. Condições: ${weather.current.condition}.`;
+    // 2. Prepara os dados para a IA (usando a estrutura do seu schema)
+    const weatherData = {
+      temperature: weather.current.temperature,
+      humidity: weather.current.humidity,
+      windSpeed: weather.current.windSpeed,
+      condition: weather.current.condition,
+      timestamp: weather.timestamp,
+    };
 
-    weather.aiInsight = insight;
-    return weather.save();
+    // 3. Chama o AiService para gerar o insight
+    const insight = await this.aiService.generateWeatherInsight(weatherData);
+
+    // 4. Atualiza o documento com o insight gerado
+    weather.aiInsight = {
+      ...insight,
+      generatedAt: new Date(),
+    };
+
+    await weather.save();
+
+    return weather;
   }
 
   // 6. EXPORTAR DADOS (placeholder)

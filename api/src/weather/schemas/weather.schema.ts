@@ -1,3 +1,4 @@
+// src/weather/schemas/weather.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
@@ -56,7 +57,7 @@ export class CurrentWeather {
   weatherCode: number;
 
   @Prop({ required: true })
-  condition: string; // Descrição textual (ex: "Céu limpo", "Parcialmente nublado")
+  condition: string;
 
   @Prop({ default: 0 })
   precipitation: number;
@@ -75,10 +76,29 @@ export class DailyWeather {
   tempMax: number;
 }
 
-@Schema({ timestamps: true }) // Adiciona createdAt e updatedAt automaticamente
+// ✅ NOVO: Sub-schema para insights da IA
+@Schema({ _id: false })
+export class AiInsight {
+  @Prop()
+  summary: string;
+
+  @Prop({ type: [String], default: [] })
+  alerts: string[];
+
+  @Prop({ type: [String], default: [] })
+  recommendations: string[];
+
+  @Prop()
+  trends: string;
+
+  @Prop({ type: Date, default: Date.now })
+  generatedAt: Date;
+}
+
+@Schema({ timestamps: true })
 export class Weather {
   @Prop({ required: true, type: Date, index: true })
-  timestamp: Date; // Data/hora da coleta dos dados
+  timestamp: Date;
 
   @Prop({ required: true, type: Location })
   location: Location;
@@ -89,16 +109,15 @@ export class Weather {
   @Prop({ required: true, type: DailyWeather })
   daily: DailyWeather;
 
-  // Campos opcionais úteis
   @Prop({ default: 'open-meteo' })
-  source: string; // Fonte dos dados
+  source: string;
 
-  @Prop()
-  aiInsight?: string; // Campo para armazenar insights gerados pela IA
+  @Prop({ type: AiInsight }) // ✅ Agora é um objeto estruturado
+  aiInsight?: AiInsight;
 }
 
 export const WeatherSchema = SchemaFactory.createForClass(Weather);
 
 // Índices para otimizar queries comuns
-WeatherSchema.index({ timestamp: -1 }); // Para buscar dados mais recentes
-WeatherSchema.index({ 'location.city': 1, timestamp: -1 }); // Para filtrar por cidade e data
+WeatherSchema.index({ timestamp: -1 });
+WeatherSchema.index({ 'location.city': 1, timestamp: -1 });
