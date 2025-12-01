@@ -54,8 +54,8 @@ sequenceDiagram
 - ✅ Conexão MongoDB
 - ✅ Endpoint POST /api/weather/logs (recebe do Go)
 - ✅ Endpoint GET /api/weather/logs (lista dados)
-- [ ] Auth JWT + usuário padrão
-- [ ] CRUD usuários
+- ✅ Auth JWT + usuário padrão
+- ✅ CRUD usuários
 - ✅ Exportação CSV/XLSX
 - [ ] Insights de IA
 
