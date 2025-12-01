@@ -13,6 +13,7 @@ pika==1.3.2              # Cliente RabbitMQ oficial
 # Configuration & Environment
 # ==============================================================================
 python-dotenv==1.0.0     # Carregar variáveis de ambiente do .env
+pydantic-settings==2.3.2 # Configuração baseada em Pydantic
 
 # ==============================================================================
 # Scheduling
@@ -38,3 +39,4 @@ pytest==7.4.3            # Framework de testes
 pytest-cov==4.1.0        # Cobertura de testes
 pytest-mock==3.12.0      # Mocks para testes
 responses==0.24.1        # Mock de requisições HTTP
+

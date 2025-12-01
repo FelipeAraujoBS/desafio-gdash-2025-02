@@ -1,87 +1,101 @@
 package worker
 
-import(
+import (
 	"log"
 	"time"
 
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"go-rabbitmq-worker/internal/config"
 )
 
-func StartWorker(cfg *config.Config){
-	for{
-		conn, err := amqp.Dial(cfg.RabbitMQ.URL)
-		if err != nil {
-			log.Printf("Failed to connect to RabbitMQ: %v", err)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		defer conn.Close()
+func StartWorker(cfg *config.Config) {
+	for {
+		func() {
+			conn, err := amqp.Dial(cfg.RabbitMQURL)
+			if err != nil {
+				log.Printf("Failed to connect: %v", err)
+				time.Sleep(5 * time.Second)
+				return
+			}
+			// defer no escopo da função anônima: será executado quando a função anônima terminar
+			defer func() {
+				if err := conn.Close(); err != nil {
+					log.Printf("Error closing conn: %v", err)
+				}
+			}()
 
-		log.Println("Connected to RabbitMQ")
+			ch, err := conn.Channel()
+			if err != nil {
+				log.Printf("Failed to open channel: %v", err)
+				return
+			}
+			defer func() {
+				if err := ch.Close(); err != nil {
+					log.Printf("Error closing channel: %v", err)
+				}
+			}()
 
-		if err := consumeMessages(conn, cfg); err != nil {
-			log.Printf("Error consuming messages: %v", err)
-		}
+			log.Println("Connected")
 
-		log.Println("Reconnecting to RabbitMQ...")
+			if err := consumeMessages(ch, cfg); err != nil {
+				log.Printf("Consume error: %v", err)
+			}
+		}()
+
+		log.Println("Reconnecting in 5s...")
 		time.Sleep(5 * time.Second)
 	}
 }
 
-func consumeMessages(conn *amqp.Connection, cfg *config.Config) error {
-	ch, err := conn.Channel()
-	if err != nil {
-		return err
-	}
-	defer ch.Close()
-
-	_, err = ch.QueueDeclare(
-		QueueName,
-		true, //Duravél
-		false, //auto-delete
-		false, //Exclusivo
-		false, //no-wait
-		nil, // argumentos
+func consumeMessages(ch *amqp.Channel, cfg *config.Config) error {
+	_, err := ch.QueueDeclarePassive(
+		cfg.QueueName,
+		true,  // durable
+		false, // auto-delete
+		false, // exclusive
+		false, // no-wait
+		nil,
 	)
 	if err != nil {
 		return err
 	}
 
-	err = ch.Qos(1, 0, false)
-	if err != nil {
+	if err := ch.Qos(1, 0, false); err != nil {
 		return err
 	}
 
 	msgs, err := ch.Consume(
-		QueueName,
-		"", // consumer tag
-		false, // auto-ack - configuração manual	
-		false, // exclusivo
-		false, // não-local
-		false, // no-wait
-		nil, // argumentos
+		cfg.QueueName,
+		"",    // consumer tag
+		false, // auto-ack = false (manual ack)
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
 		return err
 	}
 
-	forever := make(chan bool)
-
-	go func() {
-		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
-			// Simula o processamento da mensagem
-			if processAndSend(d.Body){
-				d.Ack(false)
-				log.Printf("Message processed and acknowledged: %s", d.Body)
-			} else{
-				d.Nack(false, true)
-				log.Printf("Message processing failed, message requeued: %s", d.Body)
+	// Processa mensagens até msgs ser fechado (quando a conexão/chanel é fechado)
+	for d := range msgs {
+		log.Printf("Received a message: %s", string(d.Body))
+		if ProcessAndSend(d.Body, cfg) {
+			if err := d.Ack(false); err != nil {
+				log.Printf("Ack error: %v", err)
+			} else {
+				log.Printf("Message processed and acknowledged")
+			}
+		} else {
+			// simples: requeue (true). Em produção, prefira controlar tentativas e DLQ.
+			if err := d.Nack(false, true); err != nil {
+				log.Printf("Nack error: %v", err)
+			} else {
+				log.Printf("Message processing failed, message requeued")
 			}
 		}
-	}()
+	}
 
-	<-forever
+	// quando chegamos aqui msgs foi fechado -> encerramos consumeMessages para permitir reconexão
 	return nil
 }

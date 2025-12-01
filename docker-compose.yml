@@ -1,11 +1,17 @@
-# 1. Definindo a rede interna
+# ==============================================================================
+# GDASH - Sistema de Coleta e Processamento de Dados
+# ==============================================================================
+
+# Redes
 networks:
   gdash_network:
     driver: bridge
 
-# 2. Configurando os serviços
+# Serviços
 services:
-  # 2.1 Serviço MongoDB
+  # ============================================================================
+  # 1. INFRAESTRUTURA - Banco de Dados
+  # ============================================================================
   mongodb:
     image: mongo:latest
     container_name: mongodb_container
@@ -17,15 +23,19 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+      - mongo_config:/data/configdb
     networks:
       - gdash_network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
-  # 2.2 Fila de Mensagens (RabbitMQ)
+  # ============================================================================
+  # 2. INFRAESTRUTURA - Fila de Mensagens
+  # ============================================================================
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq_container
@@ -46,7 +56,39 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2.3 Collector Python (Coleta de dados)
+  # ============================================================================
+  # 3. API - Backend NestJS
+  # ============================================================================
+  api_service:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: api_gdash
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://rootuser:rootpass@mongodb:27017/gdash?authSource=admin
+      RABBITMQ_URI: amqp://rabbituser:rabbitpass@rabbitmq:5672
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - gdash_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================================
+  # 4. COLLECTOR - Coleta de Dados (Python)
+  # ============================================================================
   collector:
     build:
       context: ./collector
@@ -62,12 +104,11 @@ services:
       RABBITMQ_QUEUE: weather_queue
       RABBITMQ_EXCHANGE: ""
 
-      # API Open-Meteo
+      # API Externa
       API_URL: https://api.open-meteo.com/v1/forecast?latitude=-12.9714&longitude=-38.5014&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code
-      API_TOKEN: ""
       API_TIMEOUT: 30
 
-      # Collector Config
+      # Configurações do Collector
       COLLECTION_INTERVAL: 300
       MAX_RETRIES: 3
       RETRY_DELAY: 5
@@ -76,35 +117,28 @@ services:
       LOG_LEVEL: INFO
       LOG_FILE: logs/collector.log
     volumes:
-      - ./collector/logs:/app/logs
+      - collector_logs:/app/logs
     depends_on:
       rabbitmq:
         condition: service_healthy
     networks:
       - gdash_network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import sys; sys.exit(0)'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  # 2.4 Serviço de API (Nest.JS)
-  api_service:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: api_gdash
-    restart: unless-stopped
-    environment:
-      MONGO_URI: mongodb://rootuser:rootpass@mongodb:27017/gdash?authSource=admin
-      RABBITMQ_URI: amqp://rabbituser:rabbitpass@rabbitmq:5672
-      NODE_ENV: production
-    ports:
-      - "3000:3000"
-    depends_on:
-      mongodb:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - gdash_network
-
-# 3. Configuração de Volumes
+# ==============================================================================
+# VOLUMES PERSISTENTES
+# ==============================================================================
 volumes:
   mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
   rabbitmq_data:
+    driver: local
+  collector_logs:
+    driver: local

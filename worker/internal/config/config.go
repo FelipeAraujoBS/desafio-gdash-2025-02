@@ -24,7 +24,7 @@ func LoadConfig() *Config {
 
 	cfg := &Config{
 		RabbitMQURL:  os.Getenv("RABBITMQ_URL"),
-		QueueName:    os.Getenv("QUEUE_NAME"),
+		QueueName:    os.Getenv("RABBITMQ_QUEUE"),
 		NestJSAPIURL: os.Getenv("NESTJS_API_URL"),
 		HTTPTimeout:  10 * time.Second,
 	}
