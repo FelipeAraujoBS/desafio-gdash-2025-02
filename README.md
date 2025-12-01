@@ -61,10 +61,10 @@ sequenceDiagram
 
 ## Go Worker
 
-- [ ] Conexão RabbitMQ
-- [ ] Consumer da fila
-- [ ] HTTP client para NestJS
-- [ ] Retry logic
+- ✅ Conexão RabbitMQ
+- ✅Consumer da fila
+- ✅ HTTP client para NestJS
+- ✅ Retry logic
 - [ ] Logs estruturados
 
 ## Python Collector
@@ -85,6 +85,6 @@ sequenceDiagram
 
 ## Infra
 
-- [ ] Docker Compose funcional
-- [ ] .env configurável
+- ✅ Docker Compose funcional
+- ✅ .env configurável
 - [ ] README completo
