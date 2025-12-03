@@ -1,7 +1,61 @@
+import { useState } from "react";
+import LandingPage from "./components/components/pages/LandingPage";
+import LoginPage from "./components/components/pages/LoginPage";
+import RegisterPage from "./components/components/pages/RegisterPage";
+import Dashboard from "./components/components/pages/Dashboard";
+import type { PageType } from "./types/index";
+
 function App() {
+  const [currentPage, setCurrentPage] = useState<PageType>("landing");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  const handleLogin = (): void => {
+    setIsAuthenticated(true);
+    setCurrentPage("dashboard");
+  };
+
+  const handleLogout = (): void => {
+    setIsAuthenticated(false);
+    setCurrentPage("landing");
+  };
+
+  const handleGetStarted = (): void => {
+    setCurrentPage("login");
+  };
+
+  const handleRegister = (): void => {
+    setIsAuthenticated(true);
+    setCurrentPage("dashboard");
+  };
+
+  const navigateToRegister = (): void => {
+    setCurrentPage("register");
+  };
+
+  const navigateToLogin = (): void => {
+    setCurrentPage("login");
+  };
+
   return (
     <>
-      <h1>Hello World</h1>
+      {currentPage === "landing" && (
+        <LandingPage onGetStarted={handleGetStarted} />
+      )}
+      {currentPage === "login" && (
+        <LoginPage
+          onLogin={handleLogin}
+          onNavigateToRegister={navigateToRegister}
+        />
+      )}
+      {currentPage === "register" && (
+        <RegisterPage
+          onRegister={handleRegister}
+          onNavigateToLogin={navigateToLogin}
+        />
+      )}
+      {currentPage === "dashboard" && isAuthenticated && (
+        <Dashboard onLogout={handleLogout} />
+      )}
     </>
   );
 }
