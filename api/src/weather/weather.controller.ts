@@ -11,10 +11,12 @@ import {
   UsePipes,
   NotFoundException,
   Param,
+  Res,
 } from '@nestjs/common';
 import { WeatherService } from './weather.service';
 import { CreateWeatherDto } from './dto/create-weather.dto';
 import { QueryWeatherDto } from './dto/query-weather.dto';
+import { type Response } from 'express';
 
 @Controller('weather')
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
@@ -99,16 +101,33 @@ export class WeatherController {
     };
   }
 
-  // 6. ENDPOINT PARA EXPORTAR DADOS (CSV/XLSX)
-  // Rota: GET /api/weather/export
   @Get('export')
   async exportData(
     @Query() query: QueryWeatherDto,
     @Query('format') format: 'csv' | 'xlsx' = 'csv',
+    @Res() res: Response,
   ) {
-    // Implementar lógica de exportação
-    const data = await this.weatherService.exportData(query, format);
+    try {
+      // Chama o service e recebe buffer, filename e mimeType
+      const { buffer, filename, mimeType } =
+        await this.weatherService.exportData(query, format);
 
-    return data; // Retornar o arquivo ou URL do arquivo
+      // Configura os headers HTTP para forçar download
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${filename}"`,
+      );
+      res.setHeader('Content-Length', buffer.length);
+
+      // Envia o arquivo (buffer) como resposta
+      res.send(buffer);
+    } catch (error) {
+      // Se der erro, retorna JSON com mensagem
+      res.status(500).json({
+        message: 'Erro ao exportar dados',
+        error: error.message,
+      });
+    }
   }
 }

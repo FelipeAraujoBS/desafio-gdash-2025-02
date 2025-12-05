@@ -136,6 +136,80 @@ export class WeatherApiService {
   }
 
   /**
+   * Exporta dados em CSV ou XLSX
+   */
+  static async exportWeatherData(
+    format: "csv" | "xlsx" = "csv",
+    filters?: {
+      startDate?: string;
+      endDate?: string;
+      location?: string;
+    }
+  ): Promise<void> {
+    const token = AuthApiService.getToken();
+
+    if (!token) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    try {
+      // Montar query params
+      const params = new URLSearchParams({ format });
+      if (filters?.startDate) params.append("startDate", filters.startDate);
+      if (filters?.endDate) params.append("endDate", filters.endDate);
+      if (filters?.location) params.append("location", filters.location);
+
+      // Fazer requisição
+      const response = await fetch(
+        `${this.baseUrl}${
+          API_CONFIG.ENDPOINTS.WEATHER_EXPORT
+        }?${params.toString()}`,
+        {
+          method: "GET",
+          headers: getAuthHeaders(token),
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          AuthApiService.removeToken();
+          window.location.href = "/login";
+        }
+        throw new Error(`Erro ao exportar: ${response.status}`);
+      }
+
+      // Obter nome do arquivo do header
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `dados-climaticos-${
+        new Date().toISOString().split("T")[0]
+      }.${format}`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        if (filenameMatch) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
+      }
+
+      // Criar blob e fazer download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log(`✅ Arquivo ${filename} exportado com sucesso!`);
+    } catch (error) {
+      console.error("❌ Erro ao exportar dados:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Obtém estatísticas do documento atual
    */
   static getCurrentStats(document: WeatherDocument) {

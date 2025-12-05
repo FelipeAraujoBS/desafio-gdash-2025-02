@@ -19,6 +19,7 @@ import { Button } from "../common/button";
 import { Alert, AlertDescription, AlertTitle } from "../common/alert";
 import { useAuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { ExportButtons } from "../Dashboard/ExportButton";
 
 const Dashboard: React.FC = () => {
   const {
@@ -200,6 +201,10 @@ const Dashboard: React.FC = () => {
                 onGenerateInsight={generateInsight}
                 generatingInsight={generatingInsight}
               />
+              <div className="items-center mb-4">
+                <h2 className="text-2xm font-bold">Histórico de Dados: </h2>
+                <ExportButtons />
+              </div>
             </div>
 
             {/* Info de última atualização */}
