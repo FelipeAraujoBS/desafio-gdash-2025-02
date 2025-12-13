@@ -61,7 +61,7 @@ export class AiService {
         };
       }
 
-      // ✅ ADICIONA A DATA DE CRIAÇÃO
+      //ADICIONA A DATA DE CRIAÇÃO
       return {
         ...insightData,
         createdAt: new Date().toISOString(),

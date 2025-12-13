@@ -16,11 +16,8 @@ const Header: React.FC<HeaderProps> = ({ onLogout }) => {
             <a href="#" className="text-blue-600 font-medium">
               Dashboard
             </a>
-            <a href="#" className="text-gray-600 hover:text-gray-900">
-              Histórico
-            </a>
-            <a href="#" className="text-gray-600 hover:text-gray-900">
-              Alertas
+            <a href="#" className="hidden text-gray-600 hover:text-gray-900">
+              Histórico {/*Ainda irei implementar*/}
             </a>
           </nav>
 

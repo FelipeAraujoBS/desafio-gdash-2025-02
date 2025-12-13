@@ -81,11 +81,9 @@ func consumeMessages(ch *amqp.Channel, cfg *config.Config) error {
 	for d := range msgs {
 		log.Printf("📨 Received message from Collector")
 		
-		// ✅ TRANSFORMAR OS DADOS
 		transformedData, err := TransformCollectorData(d.Body)
 		if err != nil {
 			log.Printf("❌ Error transforming data: %v", err)
-			// Dados inválidos, não adianta fazer retry
 			if err := d.Ack(false); err != nil {
 				log.Printf("Ack error: %v", err)
 			}
@@ -94,7 +92,6 @@ func consumeMessages(ch *amqp.Channel, cfg *config.Config) error {
 
 		log.Println("✅ Data transformed successfully")
 
-		// ENVIAR DADOS TRANSFORMADOS
 		if ProcessAndSend(transformedData, cfg) {
 			if err := d.Ack(false); err != nil {
 				log.Printf("Ack error: %v", err)

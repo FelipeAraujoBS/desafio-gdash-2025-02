@@ -29,7 +29,6 @@ func sendToNestJSAPI(body []byte, cfg *config.Config) bool {
 	}
 	defer resp.Body.Close()
 
-	// Ler resposta
 	respBody, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

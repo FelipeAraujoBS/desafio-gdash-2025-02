@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-// CollectorData é o formato que vem do Python
 type CollectorData struct {
 	Data struct {
 		Location struct {
@@ -31,7 +30,6 @@ type CollectorData struct {
 	} `json:"metadata"`
 }
 
-// NestJSData é o formato que a API NestJS espera
 type NestJSData struct {
 	Timestamp string   `json:"timestamp"`
 	Location  Location `json:"location"`
@@ -73,37 +71,30 @@ type Daily struct {
 func TransformCollectorData(rawData []byte) ([]byte, error) {
 	var collectorData CollectorData
 
-	// Parse JSON do Collector
 	if err := json.Unmarshal(rawData, &collectorData); err != nil {
 		return nil, fmt.Errorf("erro ao fazer parse: %w", err)
 	}
 
-	// Converter timestamp para RFC3339
 	timestamp, err := time.Parse("2006-01-02T15:04", collectorData.Data.Weather.Timestamp)
 	if err != nil {
 		log.Printf("⚠️ Erro ao converter timestamp, usando horário atual: %v", err)
 		timestamp = time.Now()
 	}
 
-	// Estimar sensação térmica (temperatura + 2°C como aproximação)
 	feelsLike := collectorData.Data.Weather.TemperatureCelsius + 2.0
 
-	// Mapear estado (BA -> Bahia)
 	state := collectorData.Data.Location.State
 	if state == "BA" {
 		state = "Bahia"
 	}
 
-	// Mapear país (Brazil -> BR)
 	country := collectorData.Data.Location.Country
 	if country == "Brazil" {
 		country = "BR"
 	}
 
-	// Mapear weather_code para descrição
 	condition := mapWeatherCode(collectorData.Data.Weather.WeatherCode)
 
-	// Construir objeto no formato da API
 	nestJSData := NestJSData{
 		Timestamp: timestamp.Format(time.RFC3339),
 		Location: Location{
@@ -117,7 +108,7 @@ func TransformCollectorData(rawData []byte) ([]byte, error) {
 			Temperature:              collectorData.Data.Weather.TemperatureCelsius,
 			FeelsLike:                feelsLike,
 			Humidity:                 collectorData.Data.Weather.HumidityPercent,
-			Pressure:                 1013, // Valor padrão
+			Pressure:                 1013, 
 			WindSpeed:                collectorData.Data.Weather.WindSpeedKmh,
 			WindDirection:            0,
 			UvIndex:                  5,
@@ -135,7 +126,6 @@ func TransformCollectorData(rawData []byte) ([]byte, error) {
 		Source: collectorData.Metadata.Source,
 	}
 
-	// Converter para JSON
 	transformedData, err := json.Marshal(nestJSData)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao serializar: %w", err)
@@ -144,7 +134,6 @@ func TransformCollectorData(rawData []byte) ([]byte, error) {
 	return transformedData, nil
 }
 
-// mapWeatherCode converte códigos WMO para descrições em português
 func mapWeatherCode(code int) string {
 	conditions := map[int]string{
 		0:  "Céu limpo",
